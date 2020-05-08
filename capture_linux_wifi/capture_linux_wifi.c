@@ -747,11 +747,9 @@ int chancontrol_callback(kis_capture_handler_t *caph, uint32_t seqno, void *priv
                              chan_width = 0, 
                              center_freq1 = 0, 
                              center_freq2 = 0;
-                int check_r = 0;
-
                 count++;
 
-                check_r = mac80211_get_frequency_cache(local_wifi->mac80211_ifidx,
+                mac80211_get_frequency_cache(local_wifi->mac80211_ifidx,
                         local_wifi->mac80211_socket, local_wifi->mac80211_id,
                         &control_freq, &chan_type, &chan_width, &center_freq1, &center_freq2,
                         errstr);
@@ -832,7 +830,7 @@ int chancontrol_callback(kis_capture_handler_t *caph, uint32_t seqno, void *priv
 
 
 int probe_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
-        char *msg, char **uuid, KismetExternal__Command *frame,
+        char *msg, char **uuid,
         cf_params_interface_t **ret_interface,
         cf_params_spectrum_t **ret_spectrum) {
     local_wifi_t *local_wifi = (local_wifi_t *) caph->userdata;
@@ -1185,7 +1183,7 @@ int build_explicit_filters(char **stringmacs, int num_macs, char **filter) {
 
 
 int open_callback(kis_capture_handler_t *caph, uint32_t seqno, char *definition,
-        char *msg, uint32_t *dlt, char **uuid, KismetExternal__Command *frame,
+        char *msg, uint32_t *dlt, char **uuid,
         cf_params_interface_t **ret_interface,
         cf_params_spectrum_t **ret_spectrum) {
     /* Try to open an interface for monitoring
@@ -2518,7 +2516,6 @@ void pcap_dispatch_cb(u_char *user, const struct pcap_pkthdr *header,
      * data out in the main select() loop */
     while (1) {
         if ((ret = cf_send_data(caph, 
-                        NULL, NULL, NULL,
                         header->ts, 
                         local_wifi->datalink_type,
                         header->caplen, (uint8_t *) data)) < 0) {

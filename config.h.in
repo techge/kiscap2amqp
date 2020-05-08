@@ -33,15 +33,6 @@
 /* Remove mutex deadlock timeout protection */
 #undef DISABLE_MUTEX_TIMEOUT
 
-/* gcc version */
-#undef GCC_VERSION_MAJOR
-
-/* gcc version */
-#undef GCC_VERSION_MINOR
-
-/* gcc version */
-#undef GCC_VERSION_PATCH
-
 /* Define to 1 if you have the <bfd.h> header file. */
 #undef HAVE_BFD_H
 
@@ -53,15 +44,6 @@
 
 /* kernel capability support */
 #undef HAVE_CAPABILITY
-
-/* define if the compiler supports basic C++11 syntax */
-#undef HAVE_CXX11
-
-/* define if the compiler supports basic C++14 syntax */
-#undef HAVE_CXX14
-
-/* define if the compiler supports basic C++17 syntax */
-#undef HAVE_CXX17
 
 /* Define to 1 if you have the <dwarf.h> header file. */
 #undef HAVE_DWARF_H
@@ -111,9 +93,6 @@
 /* libpcre regex support */
 #undef HAVE_LIBPCRE
 
-/* libsqlite3 database support */
-#undef HAVE_LIBSQLITE3
-
 /* libubertooth has ubertooth_count */
 #undef HAVE_LIBUBERTOOTH_UBERTOOTH_COUNT
 
@@ -134,9 +113,6 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
-
-/* microhttpd is present */
-#undef HAVE_MICROHTTPD_H
 
 /* pcap/pcap.h */
 #undef HAVE_PCAPPCAP_H
@@ -164,9 +140,6 @@
 
 /* have pthread timelock */
 #undef HAVE_PTHREAD_TIMELOCK
-
-/* Define to 1 if you have the <sensors/sensors.h> header file. */
-#undef HAVE_SENSORS_SENSORS_H
 
 /* Define to 1 if you have the `setproctitle' function. */
 #undef HAVE_SETPROCTITLE
@@ -216,9 +189,6 @@
 /* system state directory */
 #undef LOCALSTATE_DIR
 
-/* Able to use MHD_quiesce_daemon to shut down */
-#undef MHD_QUIESCE
-
 /* we need to shim isnan */
 #undef MISSING_STD_ISNAN
 
@@ -245,9 +215,6 @@
 
 /* writeable argv type */
 #undef PF_ARGV_TYPE
-
-/* Libprelude support enabled */
-#undef PRELUDE
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
@@ -301,36 +268,6 @@
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
-/* proftpd argv stuff */
-#define PF_ARGV_NONE        0
-#define PF_ARGV_NEW     	1
-#define PF_ARGV_WRITEABLE   2
-#define PF_ARGV_PSTAT       3
-#define PF_ARGV_PSSTRINGS   4
 
 /* Maximum number of characters in the status line */
 #define STATUS_MAX 1024
-
-/* Stupid ncurses */
-#define NCURSES_NOMACROS
-
-/* Number of hex pairs in a key */
-#define WEPKEY_MAX 32
-
-/* String length of a key */
-#define WEPKEYSTR_MAX ((WEPKEY_MAX * 2) + WEPKEY_MAX)
-
-/* system min isn't reliable */
-#define kismin(x,y) ((x) < (y) ? (x) : (y))
-#define kismax(x,y) ((x) > (y) ? (x) : (y))
-
-/* Timer slices per second */
-#define SERVER_TIMESLICES_SEC 10
-
-/* Max chars in SSID */
-#define MAX_SSID_LEN    255
-
-#ifndef _
-#define _(x) x
-#endif
-

@@ -9,7 +9,7 @@ MONITOR_OBJS = \
 	linux_wireless_rfkill.c.o \
 	capture_linux_wifi.c.o
 
-MONITOR_BIN = kismet_cap_linux_wifi
+MONITOR_BIN = kiscap2amqp_linux_wifi
 
 PCAPLIBS=@pcaplnk@
 NMLIBS=@NMLIBS@
@@ -17,8 +17,8 @@ NETLINKLIBS=@NLLIBS@
 
 all: $(MONITOR_BIN)
 
-$(MONITOR_BIN):	$(MONITOR_OBJS) $(patsubst %c.o,%c.d,$(MONITOR_OBJS)) ../libkismetdatasource.a
-		$(CCLD) $(LDFLAGS) -o $(MONITOR_BIN) $(MONITOR_OBJS) ../libkismetdatasource.a $(PCAPLIBS) $(NMLIBS) $(NETLINKLIBS) $(DATASOURCE_LIBS)
+$(MONITOR_BIN):	$(MONITOR_OBJS) $(patsubst %c.o,%c.d,$(MONITOR_OBJS)) ../libdatasource.a
+		$(CCLD) $(LDFLAGS) -o $(MONITOR_BIN) $(MONITOR_OBJS) ../libdatasource.a  $(PCAPLIBS) $(NMLIBS) $(NETLINKLIBS) $(DATASOURCE_LIBS)
 
 clean:
 	@-rm -f $(MONITOR_BIN)

@@ -1,15 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT
 
-VERSION=`cat VERSION`
-AC_SUBST(VERSION)
-
-#m4_include([m4/acx_pthread.m4])
-#m4_include([m4/ax_cxx_compile_stdcxx.m4])
-#m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
-AC_CONFIG_MACRO_DIR([m4])
-
-AC_CONFIG_SRCDIR([kismet.h])
+#FIXME use different file (indicates src root)
+#AC_CONFIG_SRCDIR([kismet.h])
 
 AC_PREREQ(2.57)
 
@@ -41,10 +34,6 @@ BUILD_CAPTURE_TI_CC_2531=0
 BUILD_CAPTURE_UBERTOOTH_ONE=0
 BUILD_CAPTURE_NRF_51822=0
 BUILD_CAPTURE_NXP_KW41Z=0
-
-DATASOURCE_BINS="\$(CAPTURE_KISMETDB)"
-
-BUILD_PYTHON_MODULES=1
 
 # Liberated from ethereal's configure.in
 #
@@ -166,43 +155,45 @@ else
         ;;
     esac
 
+    #FIXME does anybody use this information?
     # Get the GCC version
-    AX_GCC_VERSION
-
-    GCC_MAJOR=$(echo $GCC_VERSION | cut -s -d'.' -f1)
-    GCC_MINOR=$(echo $GCC_VERSION | cut -s -d'.' -f2)
-    GCC_PATCH=$(echo $GCC_VERSION | cut -s -d'.' -f3)
-
-    if test "$GCC_MAJOR"x == x; then
-        GCC_MAJOR=$GCC_VERSION
-    fi
-    if test "$GCC_MINOR"x == x; then
-        GCC_MINOR=0
-    fi
-    if test "$GCC_PATCH"x == x; then
-        GCC_PATCH=0
-    fi
-
-    AC_DEFINE_UNQUOTED(GCC_VERSION_MAJOR, $GCC_MAJOR, [gcc version])
-    AC_DEFINE_UNQUOTED(GCC_VERSION_MINOR, $GCC_MINOR, [gcc version])
-    AC_DEFINE_UNQUOTED(GCC_VERSION_PATCH, $GCC_PATCH, [gcc version])
+#    AX_GCC_VERSION
+#
+#    GCC_MAJOR=$(echo $GCC_VERSION | cut -s -d'.' -f1)
+#    GCC_MINOR=$(echo $GCC_VERSION | cut -s -d'.' -f2)
+#    GCC_PATCH=$(echo $GCC_VERSION | cut -s -d'.' -f3)
+#
+#    if test "$GCC_MAJOR"x == x; then
+#        GCC_MAJOR=$GCC_VERSION
+#    fi
+#    if test "$GCC_MINOR"x == x; then
+#        GCC_MINOR=0
+#    fi
+#    if test "$GCC_PATCH"x == x; then
+#        GCC_PATCH=0
+#    fi
+#
+#    AC_DEFINE_UNQUOTED(GCC_VERSION_MAJOR, $GCC_MAJOR, [gcc version])
+#    AC_DEFINE_UNQUOTED(GCC_VERSION_MINOR, $GCC_MINOR, [gcc version])
+#    AC_DEFINE_UNQUOTED(GCC_VERSION_PATCH, $GCC_PATCH, [gcc version])
 
 fi
 
 # Start at the newest C++ and define our way back
-AX_CXX_COMPILE_STDCXX(17, , [optional])
-if test "$HAVE_CXX17" = "1"; then
-    AC_DEFINE(HAVE_CXX14, 1)
-    AC_DEFINE(HAVE_CXX11, 1)
-else
-    AX_CXX_COMPILE_STDCXX(14, ,[optional])
-    if test "$HAVE_CXX14" = "1"; then
-        AC_DEFINE(HAVE_CXX11, 1)
-    else
-        AX_CXX_COMPILE_STDCXX(11, , [mandatory])
-    fi
-fi
+#AX_CXX_COMPILE_STDCXX(17, , [optional])
+#if test "$HAVE_CXX17" = "1"; then
+#    AC_DEFINE(HAVE_CXX14, 1)
+#    AC_DEFINE(HAVE_CXX11, 1)
+#else
+#    AX_CXX_COMPILE_STDCXX(14, ,[optional])
+#    if test "$HAVE_CXX14" = "1"; then
+#        AC_DEFINE(HAVE_CXX11, 1)
+#    else
+#        AX_CXX_COMPILE_STDCXX(11, , [mandatory])
+#    fi
+#fi
 
+# Why?
 AC_SUBST(PLUGINLDFLAGS)
 
 CXXFLAGS="$CXXFLAGS -O3"
@@ -217,7 +208,6 @@ else
 	LDFLAGS="$LDFLAGS -rdynamic"
 fi
 
-AC_CONFIG_SRCDIR([kismet_server.cc])
 AC_CONFIG_HEADER([config.h])
 
 # Config location for code to default to
@@ -285,16 +275,8 @@ AC_ARG_ENABLE([mutex-name-debug],
        *) ;;
     esac], [])
 
-# Configure for a remote-capture-only build
-caponly=0
-AC_ARG_ENABLE(capture-tools-only,
-	[  --enable-capture-tools-only  Configure and build for capture tools and remote only],
-	[case "${enableval}" in
-	  no) caponly=0 ;;
-	   *) caponly=1 ;;
-	 esac],
-	[caponly=0]
-)
+# FIXME not needed if all deleted
+caponly=1
 
 if test $caponly = 0; then
     ALLTARGETS='$(STD_ALL)'
@@ -317,110 +299,6 @@ if test "$want_te_typesafety"x == "yes"x; then
 else
     AC_DEFINE(TE_TYPE_SAFETY, 0, Do not enforce runtime type safety)
 fi
-
-PROTOBUF=protobuf
-AC_ARG_ENABLE([protobuflite],
-    AS_HELP_STRING([--enable-protobuflite], [Force building with protobuf-lite instead of full protobuf]),
-	[case "${enableval}" in
-	 yes) PROTOBUF=protobuf-lite ;;
-	   *)  ;;
-	 esac],
-	[]
-)
-
-want_python=yes
-AC_ARG_ENABLE([python-tools],
-    AS_HELP_STRING([--disable-python-tools], [Disable building Python modules and Python-only data sources]),
-	[case "${enableval}" in
-	  no) want_python=no ;;
-	   *) want_python=yes ;;
-	 esac],
-	[want_python=yes]
-)
-
-PYTHON=python3
-PYTHON_VERSION=3
-
-AC_ARG_WITH([python-interpreter],
-    AS_HELP_STRING([--with-python-interpreter=PATH], [Custom location of python interpreter if not in normal PATH]))
-
-AS_IF([test "x$with_python_interpreter" != "x"],
-    [
-        PYTHON=$with_python_interpreter
-    ], 
-    []
-)
-
-if test "$want_python"x == "no"x; then
-    BUILD_PYTHON_MODULES=0
-    BUILD_CAPTURE_SDR_RTL433=0
-    BUILD_CAPTURE_SDR_RTLAMR=0
-    BUILD_CAPTURE_SDR_RTLADSB=0
-    BUILD_CAPTURE_FREAKLABS_ZIGBEE=0
-    AC_MSG_WARN([Disabling Python and Python-related tools])
-else
-    if test "$PYTHON_VERSION" == 3; then
-        AC_PYTHON3_MODULE(setuptools)
-    fi
-
-    if test "$HAVE_PYMOD_SETUPTOOLS" == "no"; then
-        AC_MSG_ERROR([Missing python setuptools, if you would like to build without python entirely, use --disable-python-tools, otherwise install python setuptools for your python version])
-    else
-        DATASOURCE_BINS="$DATASOURCE_BINS \$(CAPTURE_SDR_RTL433) \$(CAPTURE_SDR_RTLAMR) \$(CAPTURE_SDR_RTLADSB) \$(CAPTURE_FREAKLABS_ZIGBEE)"
-    fi
-fi
-AC_SUBST(PYTHON)
-AC_SUBST(PYTHON_VERSION)
-AC_SUBST(BUILD_PYTHON_MODULES)
-
-# HAVE_LIBHACKRF=0
-# HAVE_LIBFFTW3=0
-# HAVE_HACKRF_H=0
-# HAVE_FFTW3_H=0
-# BUILD_CAPTURE_HACKRF_SWEEP=0
-# HACKRF_MISSING_REASON="Missing required libhack/libfftw3 libraries"
-# 
-# AC_CHECK_HEADERS([libhackrf/hackrf.h],
-#     HAVE_HACKRF_H=1,
-#     AC_MSG_WARN("Missing hackrf.h from libhackrf"))
-# AC_CHECK_HEADERS([fftw3.h],
-#     HAVE_FFTW3_H=1,
-#     AC_MSG_WARN("Missing fftw3.h from libfftw"))
-# 
-# if test "$HAVE_HACKRF_H" = 1; then
-#     AC_CHECK_LIB([hackrf], [hackrf_init],
-# 			HAVE_LIBHACKRF=1,
-# 			 AC_MSG_WARN([libhackrf not available]))
-# else
-#     HACKRF_MISSING_REASON="Missing libhackrf/hackrf.h"
-# fi
-# 
-# if test "$HAVE_FFTW3_H" = 1; then
-#     AC_CHECK_LIB([fftw3], [fftw_malloc],
-#             HAVE_LIBFFTW3=1,
-#             AC_MSG_WARN([libfftw3 not available]))
-# else
-#     HACKRF_MISSING_REASON="missing libfftw3.h"
-# fi
-# 
-# if test "$HAVE_LIBHACKRF" = 1 && test "$HAVE_LIBFFTW3" = 1; then
-#     AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#     		#include <libhackrf/hackrf.h>
-#     		]], [[
-#             int s = SAMPLES_PER_BLOCK;
-#     		return 0;
-#     		]])],[hackrfsweep=1],[hackrfsweep=0])
-#     if test "$hackrfsweep" = 1; then
-#         AC_DEFINE(BUILD_CAPTURE_HACKRF_SWEEP, 1, Able to build hackrf sweep source)
-#         # BUILD_CAPTURE_HACKRF_SWEEP=1
-#         # DATASOURCE_BINS="$DATASOURCE_BINS \$(CAPTURE_HACKRF_SWEEP)"
-#     else
-#         AC_MSG_WARN([Old version of libhack does not contain sweep code])
-#         HACKRF_MISSING_REASON="old version of libhackrf found"
-#     fi
-# else
-#     HACKRF_MISSING_REASON="missing libhackrf or libfftw3"
-# fi
 
 HAVE_LIBDW=0
 HAVE_LIBBFD=0
@@ -681,52 +559,6 @@ else
 fi
 AC_SUBST(instgrp)
 
-# We need microhttpd if we're building kismet_server
-if test "$caponly" == 0; then
-    HAVE_LIBMICROHTTPD=0
-    AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
-                 KSLIBS="$KSLIBS -lmicrohttpd" HAVE_LIBMICROHTTPD=1,
-                 HAVE_LIBMICROHTTPD=0)
-    if test "$HAVE_LIBMICROHTTPD" == 0 -a "$caponly" == 0; then
-        AC_MSG_ERROR([libmicrohttpd is needed and is not available])
-    elif test "$HAVE_LIBMICROHTTPD" = 1; then
-        AC_CHECK_HEADER([microhttpd.h], 
-        	AC_DEFINE(HAVE_MICROHTTPD_H, 1, microhttpd is present),
-            AC_MSG_ERROR([microhttpd.h is not available check that libmicrohttpd-dev is installed]))
-    fi
-    
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-        #include <microhttpd.h>
-        ]], [[
-        #if MHD_VERSION <= 0x00093700
-        #error MHD_TOO_OLD
-        #endif
-        ]])],[mhd_too_old=0],[mhd_too_old=1])
-    
-    if test "$mhd_too_old" = 1; then
-        AC_MSG_ERROR(sorry - libmicrohttpd is too old. Some distributions such as debian jessie ship a version of libmicrohttpd which has several flaws that break Kismet.  You will need a new version from your distribution backports or from https://www.gnu.org/software/libmicrohttpd/)
-    fi
-    
-    OLIBS="$LIBS"
-    LIBS="$LIBS -lmicrohttpd"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-        #include <microhttpd.h>
-    ]], [[
-        struct MHD_Daemon *microhttpd = NULL;
-        MHD_quiesce_daemon(microhttpd);
-        return 0;
-    ]])],[mhd_quiesce=1],[mhd_quiesce=0])
-    LIBS="$OLIBS"
-    
-    if test "$mhd_quiesce" = 1; then
-        AC_DEFINE(MHD_QUIESCE, 1, Able to use MHD_quiesce_daemon to shut down)
-    else
-        AC_MSG_WARN([Unable to use MHD_quiesce_daemon, this might lead to hangs on shutdown])
-    fi
-
-fi # caponly
-
-
 # Check for process title manipulation stuff, from proftpd configure.in
 AC_CHECK_FUNCS(setproctitle)
 AC_CHECK_HEADERS(libutil.h)
@@ -954,49 +786,6 @@ if test "$caponly" == 0; then
     fi
 fi
 
-# Don't check for sqlite3 if we're only building datasources
-if test "$caponly" == 0; then
-    # Check for sqlite3
-    sql3l=no
-    AC_CHECK_LIB([sqlite3], [sqlite3_libversion], sql3l=yes, sql3l=no)
-    
-    if test "$sql3l" != "yes"; then
-    	AC_MSG_ERROR(Failed to find libsqlite3)
-    fi
-    
-    
-    sql3h=no
-    AC_CHECK_HEADER([sqlite3.h], sql3h=yes, sql3h=no)
-    
-    if test "$sql3h" != "yes"; then
-    	AC_MSG_ERROR(Failed to find sqlite3 headers check that the libsqlite3-devel package is installed if your distribution provides separate packages)
-    fi
-    
-    if test "$sql3h" = "yes" -a "$sql3l" = "yes"; then
-    AC_DEFINE(HAVE_LIBSQLITE3, 1, libsqlite3 database support)
-    LIBS="$LIBS -lsqlite3"
-    else
-        AC_MSG_ERROR(Failed to find sqlite3)
-    fi # sqlite3
-
-fi # caponly
-
-AC_ARG_ENABLE(prelude,
-              AS_HELP_STRING([--enable-prelude],
-                             [Enable Prelude SIEM as a target for alerts.]),
-[
-  wantprelude=no
-  if test "$enableval" != "no"; then
-    AM_PATH_LIBPRELUDE(1.2.6, , AC_MSG_ERROR(Cannot find libprelude: Is libprelude-config in the path?), no)
-    CPPFLAGS="${CPPFLAGS} ${LIBPRELUDE_CFLAGS}"
-    LDFLAGS="${LDFLAGS} ${LIBPRELUDE_LDFLAGS}"
-    LIBS="${LIBS} ${LIBPRELUDE_LIBS}"
-    AC_DEFINE([PRELUDE], [1], [Libprelude support enabled])
-    wantprelude=yes
-  fi
-],[wantprelude=no])
-
-
 foundsyspcap=no
 
 if test "$cygwin" = yes; then
@@ -1073,76 +862,6 @@ fi
 AC_SUBST(pcap)
 
 PKG_PROG_PKG_CONFIG
-
-# We always need proto-c because it's required to compile the python protobuf instances
-PKG_CHECK_MODULES([protobuf], [${PROTOBUF}], have_protobuf_pkg=yes)
-if test x"$have_protobuf_pkg" != "xyes"; then
-    AC_MSG_ERROR([missing google libprotobuf])
-fi
-
-AC_ARG_WITH(protoc,
-	[  --with-protoc[=PATH]     Custom location of the protoc protobuf compiler],
-    [ ])
-
-if test x"$with_protoc" == "x"; then
-    PROTOCBIN=protoc
-    AC_CHECK_PROG(protoc, [protoc], yes)
-    if test x"$protoc" != x"yes"; then
-        AC_MSG_ERROR([missing google libprotobuf protoc compiler])
-    fi
-else
-    PROTOCBIN=$with_protoc
-fi
-
-PROTOLIBS=`pkg-config --libs ${PROTOBUF}`
-PROTOCFLAGS=`pkg-config --cflags ${PROTOBUF}`
-
-# Enable the C++ targets
-PROTOBUF_CPP_O_TARGET='$(PROTOBUF_CPP_O)'
-PROTOBUF_CPP_H_TARGET='$(PROTOBUF_CPP_H)'
-
-# We need protobuf-c all the time
-PKG_CHECK_MODULES([libprotobufc], [libprotobuf-c], have_protobufc_pkg=yes, have_protobufc_pkg=no)
-if test x"$have_protobufc_pkg" != "xyes"; then
-    # Look for the old version (old ubuntu, maybe others)
-    AC_CHECK_HEADER([google/protobuf-c/protobuf-c.h], 
-            have_protobufc_hdr=yes)
-    AC_CHECK_LIB([protobuf-c], [protobuf_c_message_pack_to_buffer],
-            have_protobufc_lib=yes)
-
-    if test x"$have_protobufc_hdr" = "xyes" -a x"$have_protobufc_lib" = "xyes"; then
-        PROTOCLIBS="-lprotobuf-c"
-        PROTOCFLAGS=""
-    else
-        AC_MSG_ERROR([missing libprotobuf-c])
-    fi
-else
-    PROTOCLIBS=`pkg-config --libs libprotobuf-c`
-    PROTOCCFLAGS=`pkg-config --cflags libprotobuf-c`
-fi
-
-AC_ARG_WITH(protocc,
-	[  --with-protocc[=PATH]     Custom location of the protoc protobuf compiler],
-	[ PROTOCCBIN=$withval ]
-	)
-if test x"$with_protocc" == "x"; then
-    PROTOCCBIN="protoc-c"
-    AC_CHECK_PROG(protocc, [protoc-c], yes)
-    if test x"$protocc" != x"yes"; then
-        AC_MSG_ERROR([missing libprotobuf-c protoc-c compiler])
-    fi
-else
-    PROTOCCBIN=$with_protocc
-fi
-
-AC_SUBST(PROTOCBIN)
-AC_SUBST(PROTOLIBS)
-AC_SUBST(PROTOCFLAGS)
-AC_SUBST(PROTOCCBIN)
-AC_SUBST(PROTOCLIBS)
-AC_SUBST(PROTOCCFLAGS)
-AC_SUBST(PROTOBUF_CPP_O_TARGET)
-AC_SUBST(PROTOBUF_CPP_H_TARGET)
 
 if test "$bsd" = yes; then
 	AC_MSG_CHECKING(for BSD net80211/radiotap support)
@@ -1354,23 +1073,24 @@ fi
 AC_SUBST(NLLIBS)
 AC_SUBST(NLCFLAGS)
 
-want_usb="yes"
+#want_usb="yes"
+want_usb="no"
 have_usb="no"
 
 AC_ARG_ENABLE([libusb],
-    AS_HELP_STRING([--disable-libusb], [Disable libUSB support and any libUSB based data sources]),
+    AS_HELP_STRING([--enable-libusb], [Enable libUSB support and any libUSB based data sources]),
 	[case "${enableval}" in
-	  no) want_usb=no ;;
-	   *) want_usb=yes ;;
+	  yes) want_usb=yes ;;
+	   *) want_usb=no ;;
 	 esac],
-	[want_usb=yes]
+	[want_usb=no]
 )
 
 AS_IF([test "x$want_usb" != "xno"], [
     PKG_CHECK_MODULES([libusb], [libusb-1.0], have_libusb_pkg=yes)
 
     if test x"$have_libusb_pkg" != "xyes"; then
-        AC_MSG_ERROR([missing libusb-1.0])
+        AC_MSG_WARN([missing libusb-1.0])
     else
         LIBUSBLIBS=`pkg-config --libs libusb-1.0`
         LIBUSBCFLAGS=`pkg-config --cflags libusb-1.0`
@@ -1514,36 +1234,36 @@ fi
 
 AS_IF([test "$linux" = "yes"], [
 
-want_lmsensors="yes"
-AC_ARG_ENABLE(lmsensors,
-    AS_HELP_STRING([--disable-lmsensors], [Disable lmsensors support]),
-	[case "${enableval}" in
-	  no) want_lmsensors=no ;;
-	   *) want_lmsensors=yes ;;
-	 esac],
-	[want_lmsensors=yes]
-    )
-
-AS_IF([test "x$want_lmsensors" != "xno"], [
-    AC_CHECK_HEADERS([sensors/sensors.h],
-        HAVE_LMSENSORS_H=1,
-        AC_MSG_WARN("libsensors lm-sensors missing"))
-    
-    if test "$HAVE_LMSENSORS_H" = 1; then
-        AC_CHECK_LIB([sensors], [sensors_init],
-    			HAVE_LIBLMSENSORS=1,
-                AC_MSG_WARN([libsensors not available]))
-        if test "$HAVE_LIBLMSENSORS" = 1; then
-            LIBS="$LIBS -lsensors"
-        fi
-    else
-        LMSENSORS_MISSING_REASON="Missing sensors/sensors.h"
-    fi
-],
-[
-    LMSENSORS_MISSING_REASON="lmsensors disabled"
-])
-])
+#want_lmsensors="yes"
+#AC_ARG_ENABLE(lmsensors,
+#    AS_HELP_STRING([--disable-lmsensors], [Disable lmsensors support]),
+#	[case "${enableval}" in
+#	  no) want_lmsensors=no ;;
+#	   *) want_lmsensors=yes ;;
+#	 esac],
+#	[want_lmsensors=yes]
+#    )
+#
+#AS_IF([test "x$want_lmsensors" != "xno"], [
+#    AC_CHECK_HEADERS([sensors/sensors.h],
+#        HAVE_LMSENSORS_H=1,
+#        AC_MSG_WARN("libsensors lm-sensors missing"))
+#    
+#    if test "$HAVE_LMSENSORS_H" = 1; then
+#        AC_CHECK_LIB([sensors], [sensors_init],
+#    			HAVE_LIBLMSENSORS=1,
+#                AC_MSG_WARN([libsensors not available]))
+#        if test "$HAVE_LIBLMSENSORS" = 1; then
+#            LIBS="$LIBS -lsensors"
+#        fi
+#    else
+#        LMSENSORS_MISSING_REASON="Missing sensors/sensors.h"
+#    fi
+#],
+#[
+#    LMSENSORS_MISSING_REASON="lmsensors disabled"
+#])
+#])
 
 AC_ARG_WITH(suidgroup,
 	[  --with-suidgroup=group       Group allowed to execute the kismet_capture suid root helper process ],
@@ -1633,14 +1353,14 @@ AC_SUBST(BUILD_CAPTURE_NXP_KW41Z)
 #AC_SUBST(CFLAGS)
 #AC_SUBST(CXXFLAGS)
 
-AC_CONFIG_FILES([Makefile Makefile.inc packaging/kismet.pc packaging/systemd/kismet.service packaging/systemd/debug/kismet-debug.service capture_linux_bluetooth/Makefile capture_linux_wifi/Makefile capture_osx_corewlan_wifi/Makefile capture_sdr_rtl433/Makefile capture_sdr_rtlamr/Makefile capture_sdr_rtladsb/Makefile capture_freaklabs_zigbee/Makefile capture_nrf_mousejack/Makefile capture_ti_cc_2540/Makefile capture_ti_cc_2531/Makefile capture_ubertooth_one/Makefile capture_nrf_51822/Makefile capture_nxp_kw41z/Makefile])
+AC_CONFIG_FILES([Makefile Makefile.inc capture_linux_wifi/Makefile])
+#AC_CONFIG_FILES([Makefile Makefile.inc packaging/kismet.pc packaging/systemd/kismet.service packaging/systemd/debug/kismet-debug.service capture_linux_bluetooth/Makefile capture_linux_wifi/Makefile capture_osx_corewlan_wifi/Makefile capture_sdr_rtl433/Makefile capture_sdr_rtlamr/Makefile capture_sdr_rtladsb/Makefile capture_freaklabs_zigbee/Makefile capture_nrf_mousejack/Makefile capture_ti_cc_2540/Makefile capture_ti_cc_2531/Makefile capture_ubertooth_one/Makefile capture_nrf_51822/Makefile capture_nxp_kw41z/Makefile])
 AC_OUTPUT
 
 echo
 echo "Configuration complete: "
 echo "         Compiling for: $host_os ($host_cpu)"
 echo "           C++ Library: $foundcxxl"
-echo "      Protobuf Library: $PROTOBUF"
 echo "   Installing as group: $instgrp"
 echo "       Installing into: $prefix"
 printf "          Setuid group: "
@@ -1655,13 +1375,6 @@ if test "$linux_wireless" = "yes"; then
 	echo "yes"
 elif test "$linux" != "yes"; then
 	echo "n/a (only Linux)"
-else
-	echo "no"
-fi
-printf "        Prelude  SIEM : $wantprelude\n"
-printf "   PCRE Regex Filters : "
-if test "$wantpcre" = "yes"; then
-	echo "yes"
 else
 	echo "no"
 fi
@@ -1750,16 +1463,6 @@ if test "$BUILD_CAPTURE_NXP_KW41Z" = 1; then
 else
         echo "no";
 fi
-
-printf "        Python Modules: "
-if test "$BUILD_PYTHON_MODULES" = 1; then
-	echo "yes";
-else
-	echo "no (will not build Python based sources)";
-fi
-
-printf "    Python interpreter: "
-echo $PYTHON
 
 printf "       RTL-SDR RTL_433: "
 if test "$BUILD_CAPTURE_SDR_RTL433" = 1; then

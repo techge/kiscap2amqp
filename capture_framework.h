@@ -51,10 +51,8 @@
 
 #include <arpa/inet.h>
 
-#include "simple_ringbuf_c.h"
-
-#include "protobuf_c/kismet.pb-c.h"
-#include "protobuf_c/datasource.pb-c.h"
+#include <amqp.h>
+#include <amqp_tcp_socket.h>
 
 struct kis_capture_handler;
 typedef struct kis_capture_handler kis_capture_handler_t;
@@ -105,7 +103,7 @@ typedef int (*cf_callback_listdevices)(kis_capture_handler_t *, uint32_t seqno,
  *  1   interface supported
  */
 typedef int (*cf_callback_probe)(kis_capture_handler_t *, uint32_t seqno, 
-        char *definition, char *msg, char **uuid, KismetExternal__Command *command,
+        char *definition, char *msg, char **uuid,
         cf_params_interface_t **ret_interface,
         cf_params_spectrum_t **ret_spectrum);
 
@@ -129,7 +127,7 @@ typedef int (*cf_callback_probe)(kis_capture_handler_t *, uint32_t seqno,
  */
 typedef int (*cf_callback_open)(kis_capture_handler_t *, uint32_t seqno, 
         char *definition, char *msg, uint32_t *dlt, char **uuid, 
-        KismetExternal__Command *command, cf_params_interface_t **ret_interface,
+        cf_params_interface_t **ret_interface,
         cf_params_spectrum_t **ret_spectrum);
 
 /* Channel translate
@@ -192,8 +190,7 @@ typedef void (*cf_callback_chanfree)(void *);
  * -1   Error occurred, close source
  *  0   Success, or frame ignored
  */
-typedef int (*cf_callback_unknown)(kis_capture_handler_t *, uint32_t, 
-        KismetExternal__Command *);
+typedef int (*cf_callback_unknown)(kis_capture_handler_t *, uint32_t);
 
 /* Capture callback
  * Called inside the capture thread as the primary capture mechanism for the source.
@@ -227,8 +224,7 @@ typedef void (*cf_callback_capture)(kis_capture_handler_t *);
  */
 typedef int (*cf_callback_spectrumconfig)(kis_capture_handler_t *, uint32_t seqno,
     uint64_t start_mhz, uint64_t end_mhz, uint64_t num_per_freq, uint64_t bin_width,
-    unsigned int amp, uint64_t if_amp, uint64_t baseband_amp, 
-    KismetExternal__Command *command);
+    unsigned int amp, uint64_t if_amp, uint64_t baseband_amp);
 
 struct kis_capture_handler {
     /* Capture source type */
@@ -255,6 +251,12 @@ struct kis_capture_handler {
     char *remote_host;
     unsigned int remote_port;
 
+    /* RabbitMQ */
+    amqp_connection_state_t capdata_conn;
+    char *cap_exchange;
+    char *login_name;
+    char *login_pw;
+
     /* Specified commandline source, used for remote cap */
     char *cli_sourcedef;
 
@@ -272,17 +274,6 @@ struct kis_capture_handler {
 
     /* Die when we hit the end of our write buffer */
     int spindown;
-
-    /* Buffers */
-    kis_simple_ringbuf_t *in_ringbuf;
-    kis_simple_ringbuf_t *out_ringbuf;
-
-    /* Lock for output buffer */
-    pthread_mutex_t out_ringbuf_lock;
-
-    /* conditional waiter for ringbuf flushing data */
-    pthread_cond_t out_ringbuf_flush_cond;
-    pthread_mutex_t out_ringbuf_flush_cond_mutex;
 
     /* Are we shutting down? */
     int shutdown;
@@ -762,21 +753,17 @@ int cf_send_openresp(kis_capture_handler_t *caph, uint32_t seq, unsigned int suc
         const char *msg, const uint32_t dlt, const char *uuid, 
         cf_params_interface_t *interface, cf_params_spectrum_t *spectrum);
 
-/* Send a DATA frame with packet data
- * Can be called from any thread
- *
- * If present, include message_kv, signal_kv, or gps_kv along with the packet data.
+/* Send captured data to the server
  *
  * Returns:
  * -1   An error occurred 
- *  0   Insufficient space in buffer
+ *  0   Insufficient space in buffer (deprecated)
  *  1   Success
  */
+//TODO include signal strength, gps?
 int cf_send_data(kis_capture_handler_t *caph,
-        KismetExternal__MsgbusMessage *kv_message,
-        KismetDatasource__SubSignal *kv_signal,
-        KismetDatasource__SubGps *kv_gps,
-        struct timeval ts, uint32_t dlt, uint32_t packet_sz, uint8_t *pack);
+        struct timeval ts, uint32_t dlt,
+        uint32_t data_len, uint8_t *data);
 
 /* Send a DATA frame with JSON non-packet data
  * Can be called from any thread
@@ -789,9 +776,6 @@ int cf_send_data(kis_capture_handler_t *caph,
  *  1   Success
  */
 int cf_send_json(kis_capture_handler_t *caph,
-        KismetExternal__MsgbusMessage *kv_message,
-        KismetDatasource__SubSignal *kv_signal,
-        KismetDatasource__SubGps *kv_gps,
         struct timeval ts, char *type, char *json);
 
 /* Send a CONFIGRESP with only a success and optional message
@@ -841,11 +825,16 @@ int cf_send_newsource(kis_capture_handler_t *caph, const char *uuid);
 double cf_parse_frequency(const char *freq);
 
 /* Simple redefinition of message flags */
-#define MSGFLAG_DEBUG   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__DEBUG
-#define MSGFLAG_INFO    KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__INFO
-#define MSGFLAG_ERROR   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__ERROR
-#define MSGFLAG_ALERT   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__ALERT
-#define MSGFLAG_FATAL   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__FATAL
+//#define MSGFLAG_DEBUG   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__DEBUG
+//#define MSGFLAG_INFO    KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__INFO
+//#define MSGFLAG_ERROR   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__ERROR
+//#define MSGFLAG_ALERT   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__ALERT
+//#define MSGFLAG_FATAL   KISMET_EXTERNAL__MSGBUS_MESSAGE__MESSAGE_TYPE__FATAL
+#define MSGFLAG_DEBUG  1
+#define MSGFLAG_INFO   2
+#define MSGFLAG_ERROR  4
+#define MSGFLAG_ALERT  8
+#define MSGFLAG_FATAL  16
 
 uint32_t adler32_partial_csum(uint8_t *in_buf, size_t in_len,
         uint32_t *s1, uint32_t *s2);
