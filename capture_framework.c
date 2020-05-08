@@ -333,13 +333,14 @@ kis_capture_handler_t *cf_handler_init(const char *in_type) {
 
     ch->remote_capable = 1;
 
-    ch->remote_host = NULL;
-    ch->remote_port = 0;
+    /* use default values for lazy people */
+    ch->remote_host = "localhost";
+    ch->remote_port = 5672;
+    ch->login_name = "guest";
+    ch->login_pw = "guest";
 
     ch->capdata_conn = NULL;
     ch->cap_exchange = NULL;
-    ch->login_name = NULL;
-    ch->login_pw = NULL;
 
     ch->reverse_server = 0;
 
@@ -674,34 +675,33 @@ void cf_handler_list_devices(kis_capture_handler_t *caph) {
 }
 
 int cf_handler_parse_opts(kis_capture_handler_t *caph, int argc, char *argv[]) {
-    int option_idx;
 
-    optind = 0;
-    opterr = 0;
-    option_idx = 0;
+    int option_idx = 0;
 
     char parse_hname[513];
     unsigned int parse_port;
+
+    char parse_lname[513];
+    char parse_pw[513];
 
     int retry = 1;
     int daemon = 0;
 
     static struct option longopt[] = {
-        { "in-fd", required_argument, 0, 1 },
-        { "out-fd", required_argument, 0, 2 },
-        { "connect", required_argument, 0, 3 },
+        { "rabbitmq", required_argument, 0, 1 },
+        { "login", required_argument, 0, 2},
+        { "list", no_argument, 0, 3},
         { "source", required_argument, 0, 4 },
-        { "disable-retry", no_argument, 0, 5 },
-        { "daemonize", no_argument, 0, 6},
-        { "list", no_argument, 0, 7},
-        { "fixed-gps", required_argument, 0, 8},
-        { "gps-name", required_argument, 0, 9},
-        { "host", required_argument, 0, 10},
+        { "cap-exchange", required_argument, 0, 5 },
+        { "disable-retry", no_argument, 0, 6 },
+        { "daemonize", no_argument, 0, 7},
+        //{ "fixed-gps", required_argument, 0, 8},
+        //{ "gps-name", required_argument, 0, 9},
         { "help", no_argument, 0, 'h'},
         { 0, 0, 0, 0 }
     };
 
-    char *gps_arg = NULL;
+    //char *gps_arg = NULL;
 
     int pr;
 
@@ -714,138 +714,103 @@ int cf_handler_parse_opts(kis_capture_handler_t *caph, int argc, char *argv[]) {
         if (r == 'h') {
             return -2;
         } else if (r == 1) {
-            if (sscanf(optarg, "%d", &(caph->in_fd)) != 1) {
-                fprintf(stderr, "FATAL: Unable to parse incoming file descriptor\n");
-                return -1;
-            }
-        } else if (r == 2) {
-            if (sscanf(optarg, "%d", &(caph->out_fd)) != 1) {
-                fprintf(stderr, "FATAL: Unable to parse outgoing file descriptor\n");
-                return -1;
-            }
-        } else if (r == 3) {
             if (sscanf(optarg, "%512[^:]:%u", parse_hname, &parse_port) != 2) {
-                fprintf(stderr, "FATAL: Expected host:port for --connect\n");
+                fprintf(stderr, "FATAL: Expected host:port for --rabbitmq\n");
                 return -1;
             }
 
             caph->remote_host = strdup(parse_hname);
             caph->remote_port = parse_port;
-        } else if (r == 4) {
-            caph->cli_sourcedef = strdup(optarg);
-        } else if (r == 5) {
-            fprintf(stderr, "INFO: Disabling automatic reconnection to remote servers\n");
-            retry = 0;
-        } else if (r == 6) {
-            fprintf(stderr, "INFO: Entering daemon mode after initial setup\n");
-            daemon = 1;
-        } else if (r == 7) {
+        } else if (r == 2) {
+            if (sscanf(optarg, "%512[^:]:%512[$]", parse_lname, parse_pw) != 2) {
+                fprintf(stderr, "FATAL: Expected username:password for --login\n");
+                return -1;
+            }
+
+            caph->login_name = strdup(parse_lname);
+            caph->login_pw = strdup(parse_pw);
+        } else if (r == 3) {
             cf_handler_list_devices(caph);
             cf_handler_free(caph);
             exit(1);
-        } else if (r == 8) {
-            gps_arg = strdup(optarg);
-        } else if (r == 9) {
-            caph->gps_name = strdup(optarg);
-        } else if (r == 10) {
-            if (sscanf(optarg, "%512[^:]:%u", parse_hname, &parse_port) != 2) {
-                fprintf(stderr, "FATAL: Expected ip:port for --host\n");
-                return -1;
-            }
-
-            caph->remote_host = strdup(parse_hname);
-            caph->remote_port = parse_port;
-            caph->reverse_server = 1;
+        } else if (r == 4) {
+            caph->cli_sourcedef = strdup(optarg);
+        } else if (r == 5) {
+            caph->cap_exchange = strdup(optarg);
+        } else if (r == 6) {
+            fprintf(stderr, "INFO: Disabling automatic reconnection to remote servers\n");
+            retry = 0;
+        } else if (r == 7) {
+            fprintf(stderr, "INFO: Entering daemon mode after initial setup\n");
+            daemon = 1;
+        //} else if (r == 8) {
+        //    gps_arg = strdup(optarg);
+        //} else if (r == 9) {
+        //    caph->gps_name = strdup(optarg);
         }
     }
 
-    // FIXME enable usage of parameters or config files
-    caph->remote_host = "localhost";
-    caph->remote_port = 5672;
-    caph->cli_sourcedef = "wlp2s0";
-    caph->cap_exchange = "capture-raw";
-    caph->login_name = "guest";
-    caph->login_pw = "guest";
+    //if (gps_arg != NULL) {
+    //    pr = sscanf(gps_arg, "%lf,%lf,%lf", 
+    //            &(caph->gps_fixed_lat), &(caph->gps_fixed_lon),
+    //            &(caph->gps_fixed_alt));
 
-    if (caph->remote_host == NULL && caph->cli_sourcedef != NULL) {
+    //    if (pr == 2) {
+    //        caph->gps_fixed_alt = 0;
+    //    } else if (pr < 2) {
+    //        fprintf(stderr, 
+    //                "FATAL:  --fixed-gps expects lat,lon or lat,lon,alt\n");
+    //        return -1;
+    //    }
+
+    //    free(gps_arg);
+    //}
+
+    /* Must have a --source present */
+    if (caph->cli_sourcedef == NULL) {
         fprintf(stderr, 
-                "WARNING: Ignoring --source option when not in remote mode.\n");
-    }
-
-    if (caph->remote_host == NULL && gps_arg != NULL) {
-        fprintf(stderr, 
-                "WARNING: Ignoring --fixed-gps option when not in remote mode.\n");
-    }
-
-    if (gps_arg != NULL) {
-        pr = sscanf(gps_arg, "%lf,%lf,%lf", 
-                &(caph->gps_fixed_lat), &(caph->gps_fixed_lon),
-                &(caph->gps_fixed_alt));
-
-        if (pr == 2) {
-            caph->gps_fixed_alt = 0;
-        } else if (pr < 2) {
-            fprintf(stderr, 
-                    "FATAL:  --fixed-gps expects lat,lon or lat,lon,alt\n");
-            return -1;
-        }
-
-        free(gps_arg);
-    }
-
-
-    if (caph->remote_host != NULL) {
-        /* Must have a --source to present to the remote host */
-        if (caph->cli_sourcedef == NULL) {
-            fprintf(stderr, 
-                    "FATAL: --source option required when connecting to a remote host\n");
-            return -1;
-        }
-
-        /* Set retry only when we have a remote host */
-        caph->remote_retry = retry;
-
-        /* Set daemon mode only when we have a remote host */
-        caph->daemonize = daemon;
-
-        if (caph->reverse_server)
-            return 3;
-
-        return 2;
-    }
-
-    if (caph->in_fd == -1 || caph->out_fd == -1)
+                "FATAL: --source option required \n");
         return -1;
+    }
+
+    /* Must have a --cap-exchange present */
+    if (caph->cap_exchange == NULL) {
+        fprintf(stderr, 
+                "FATAL: --cap-exchange option required \n");
+        return -1;
+    }
+
+    /* Set retry only */
+    caph->remote_retry = retry;
+
+    /* Set daemon mode */
+    caph->daemonize = daemon;
 
     return 1;
 
 }
 
 void cf_print_help(kis_capture_handler_t *caph, const char *argv0) {
-    fprintf(stderr, "%s is a capture driver for Kismet.  Typically it is started\n"
-            "automatically by the Kismet server.\n", argv0);
+    fprintf(stderr, "%s is a capture driver that sends packets to a RabbitMQ server. \n", argv0);
     
     if (caph->remote_capable) {
-        fprintf(stderr, "\n%s supports sending data to a remote Kismet server\n"
-                "usage: %s [options]\n"
-                " --connect [host]:[port]     Connect to remote Kismet server on [host] \n"
-                "                             and [port]; typically Kismet accepts remote \n"
-                "                             capture on port 3501.\n"
-                " --host [ip]:[port]          Listen for incoming remote connections on \n"
-                "                             [interface] and [port]; You need to use a different \n"
-                "                             port for each source you define.\n"
-                " --source [source def]       Specify a source to send to the remote \n"
-                "                             Kismet server; only used in conjunction with \n"
-                "                             remote capture.\n"
+        fprintf(stderr,
+                "\nUsage: %s --source [dev] --cap-exchange [exchange] [options]\n\n"
+                " --source [source def]       Specify a source capture device \n"
+                " --cap-exchange [exch_name]  Specify the exchange the data should be sent to \n"
+                " --rabbitmq [host]:[port]    Connect to RabbitMQ server on [host] and [port]; \n"
+                "                             defaults to localhost:5672 \n"
+                " --login [user]:[pw]         Credentials for login to RabbitMQ server \n"
+                "                             defaults to \"guest\":\"guest\"\n"
                 " --disable-retry             Do not attempt to reconnect to a remote server\n"
                 "                             if there is an error; exit immediately\n"
-                " --fixed-gps [lat,lon,alt]   Set a fixed location for this capture (remote only),\n"
-                "                             accepts lat,lon,alt or lat,lon\n"
-                " --gps-name [name]           Set an alternate GPS name for this source\n"
+                //" --fixed-gps [lat,lon,alt]   Set a fixed location for this capture (remote only),\n"
+                //"                             accepts lat,lon,alt or lat,lon\n"
+                //" --gps-name [name]           Set an alternate GPS name for this source\n"
                 " --daemonize                 Background the capture tool and enter daemon\n"
                 "                             mode.\n"
                 " --list                      List supported devices detected\n",
-                argv0, argv0);
+               argv0);
     }
 
 }

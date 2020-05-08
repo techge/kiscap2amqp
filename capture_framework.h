@@ -537,15 +537,12 @@ void cf_handler_set_hop_shuffle_spacing(kis_capture_handler_t *capf, int spacing
 
 /* Parse command line options
  *
- * Parse command line for --in-fd, --out-fd, --connect, --source, --host, and populate
- * the caph config.
+ * Parse command line and populate the caph config.
  * 
  * Returns:
- * -1   Missing in-fd/out-fd or --connect, or unknown argument, caller should print
+ * -1   Missing --source or --cap-exchange argument, caller should print
  *      help and exit
- *  1   Success, using interproc IPC
- *  2   Success, using TCP remote connection
- *  3   Success, using TCP reverse (server) remote connection
+ *  1   Success
  */
 int cf_handler_parse_opts(kis_capture_handler_t *caph, int argc, char *argv[]);
 
