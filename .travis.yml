@@ -1,0 +1,17 @@
+dist: bionic
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      - libcap-dev
+      - libnl-3-dev
+      - libnl-genl-3-dev
+      - libnm-dev
+      - libpcap-dev
+      - librabbitmq-dev
+      - pkg-config
+
+script:
+  - ./configure
+  - make
