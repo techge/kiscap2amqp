@@ -791,7 +791,7 @@ int cf_handler_parse_opts(kis_capture_handler_t *caph, int argc, char *argv[]) {
 }
 
 void cf_print_help(kis_capture_handler_t *caph, const char *argv0) {
-    fprintf(stderr, "%s is a capture driver that sends packets to a RabbitMQ server. \n", argv0);
+    fprintf(stderr, "\n%s is a capture driver that sends packets to a RabbitMQ server. \n", argv0);
     
     if (caph->remote_capable) {
         fprintf(stderr,
@@ -801,7 +801,7 @@ void cf_print_help(kis_capture_handler_t *caph, const char *argv0) {
                 " --rabbitmq [host]:[port]    Connect to RabbitMQ server on [host] and [port]; \n"
                 "                             defaults to localhost:5672 \n"
                 " --login [user]:[pw]         Credentials for login to RabbitMQ server \n"
-                "                             defaults to \"guest\":\"guest\"\n"
+                "                             defaults to guest:guest\n"
                 " --disable-retry             Do not attempt to reconnect to a remote server\n"
                 "                             if there is an error; exit immediately\n"
                 //" --fixed-gps [lat,lon,alt]   Set a fixed location for this capture (remote only),\n"
