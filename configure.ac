@@ -1,8 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT
 
-#FIXME use different file (indicates src root)
-#AC_CONFIG_SRCDIR([kismet.h])
+AC_CONFIG_SRCDIR([capture_framework.h])
 
 AC_PREREQ(2.57)
 
@@ -154,46 +153,8 @@ else
         AC_MSG_RESULT(none needed)
         ;;
     esac
-
-    #FIXME does anybody use this information?
-    # Get the GCC version
-#    AX_GCC_VERSION
-#
-#    GCC_MAJOR=$(echo $GCC_VERSION | cut -s -d'.' -f1)
-#    GCC_MINOR=$(echo $GCC_VERSION | cut -s -d'.' -f2)
-#    GCC_PATCH=$(echo $GCC_VERSION | cut -s -d'.' -f3)
-#
-#    if test "$GCC_MAJOR"x == x; then
-#        GCC_MAJOR=$GCC_VERSION
-#    fi
-#    if test "$GCC_MINOR"x == x; then
-#        GCC_MINOR=0
-#    fi
-#    if test "$GCC_PATCH"x == x; then
-#        GCC_PATCH=0
-#    fi
-#
-#    AC_DEFINE_UNQUOTED(GCC_VERSION_MAJOR, $GCC_MAJOR, [gcc version])
-#    AC_DEFINE_UNQUOTED(GCC_VERSION_MINOR, $GCC_MINOR, [gcc version])
-#    AC_DEFINE_UNQUOTED(GCC_VERSION_PATCH, $GCC_PATCH, [gcc version])
-
 fi
 
-# Start at the newest C++ and define our way back
-#AX_CXX_COMPILE_STDCXX(17, , [optional])
-#if test "$HAVE_CXX17" = "1"; then
-#    AC_DEFINE(HAVE_CXX14, 1)
-#    AC_DEFINE(HAVE_CXX11, 1)
-#else
-#    AX_CXX_COMPILE_STDCXX(14, ,[optional])
-#    if test "$HAVE_CXX14" = "1"; then
-#        AC_DEFINE(HAVE_CXX11, 1)
-#    else
-#        AX_CXX_COMPILE_STDCXX(11, , [mandatory])
-#    fi
-#fi
-
-# Why?
 AC_SUBST(PLUGINLDFLAGS)
 
 CXXFLAGS="$CXXFLAGS -O3"
@@ -275,7 +236,6 @@ AC_ARG_ENABLE([mutex-name-debug],
        *) ;;
     esac], [])
 
-# FIXME not needed if all deleted
 caponly=1
 
 if test $caponly = 0; then

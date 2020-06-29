@@ -80,6 +80,6 @@ To be continued
 * allow setting channel by parameter
 * allow dropping of packet types
 * enable cutting data part of data frames
-* fix FIXMEs in configure.ac
 * building instructions for OpenWRT
+* adding more capture types (e.g. bluetooth)
 
