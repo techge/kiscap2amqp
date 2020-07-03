@@ -73,8 +73,7 @@ To be continued
 
 ## TODO
 
-* enable using of .yaml config file
-* enable setting of routing key (use uuid or name)
+* enable use of config file
 * logging to RabbitMQ
 * accepting commands via RabbitMQ
 * allow setting channel by parameter

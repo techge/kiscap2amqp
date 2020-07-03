@@ -411,6 +411,9 @@ void cf_handler_free(kis_capture_handler_t *caph) {
     if (caph == NULL)
         return;
 
+    if (caph->uuid != NULL)
+        free(caph->uuid);
+
     pthread_mutex_lock(&(caph->handler_lock));
 
     if (caph->in_fd >= 0)
@@ -1850,8 +1853,15 @@ int cf_handler_remote_connect(kis_capture_handler_t *caph) {
     if (cps != NULL)
         cf_params_spectrum_free(cps);
 
-    if (uuid)
-        free(uuid);
+    if (uuid != NULL) {
+        if (caph->uuid != NULL) {
+            free(caph->uuid);
+            caph->uuid = uuid;
+        }
+        else {
+            caph->uuid = uuid;
+        }
+    }
 
     if (cbret <= 0) {
         fprintf(stderr, "FATAL - Could not probe local source prior to connecting to the "
@@ -2707,14 +2717,15 @@ int cf_send_data(kis_capture_handler_t *caph,
         struct timeval ts, uint32_t datalink_type,
         uint32_t data_len, uint8_t *data) {
 
+    char routing_key[256] = "default";
     amqp_bytes_t message_bytes;
     message_bytes.len = data_len;
     // TODO does it need to be u_char casted?
     // should we change uint8_t of function arg to u_char instead?
     message_bytes.bytes = (u_char *)data;
 
-    // TODO fill with meaningfull data (probably comming from function args)
-    char *routing_key = "if_name.type.subtype";
+    if (caph->uuid != NULL)
+        snprintf(routing_key, 256, "%s", caph->uuid);
 
     /* Send data to RabbitMQ server via caph->capdata_conn connection */
     amqp_basic_publish(caph->capdata_conn, 1, amqp_cstring_bytes(caph->cap_exchange),

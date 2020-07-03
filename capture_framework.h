@@ -297,6 +297,8 @@ struct kis_capture_handler {
 
     /* Arbitrary data blob */
     void *userdata;
+    /* Unique id for capture source */
+    char *uuid;
 
     /* Capture thread */
     int capture_running;
