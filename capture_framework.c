@@ -2711,7 +2711,6 @@ int cf_send_openresp(kis_capture_handler_t *caph, uint32_t seq, unsigned int suc
     return 0;
 }
 
-//TODO include pcap's ts and datalink_type as well?
 //TODO include signal strength, gps?
 int cf_send_data(kis_capture_handler_t *caph,
         struct timeval ts, uint32_t datalink_type,
@@ -2719,17 +2718,30 @@ int cf_send_data(kis_capture_handler_t *caph,
 
     char routing_key[256] = "default";
     amqp_bytes_t message_bytes;
+    amqp_basic_properties_t properties;
+    memset(&properties, 0, sizeof properties);
+    uint64_t timestamp_ms = 0;
+
+    /* encoding timestamp and datalink_type into RabbitMW metadata */
+    properties._flags = AMQP_BASIC_TYPE_FLAG | AMQP_BASIC_TIMESTAMP_FLAG;
+    timestamp_ms = (ts.tv_sec * (uint64_t)1000) + (ts.tv_usec / 1000);
+    properties.timestamp = timestamp_ms;
+    amqp_bytes_t type_bytes;
+    type_bytes.len = sizeof(uint32_t);
+    type_bytes.bytes = &datalink_type;
+    properties.type = type_bytes;
+
+    /* prepare message with captured data */
     message_bytes.len = data_len;
-    // TODO does it need to be u_char casted?
-    // should we change uint8_t of function arg to u_char instead?
     message_bytes.bytes = (u_char *)data;
 
+    /* use uuid as routing key */
     if (caph->uuid != NULL)
         snprintf(routing_key, 256, "%s", caph->uuid);
 
     /* Send data to RabbitMQ server via caph->capdata_conn connection */
     amqp_basic_publish(caph->capdata_conn, 1, amqp_cstring_bytes(caph->cap_exchange),
-                                    amqp_cstring_bytes(routing_key), 0, 0, NULL,
+                                    amqp_cstring_bytes(routing_key), 0, 0, &properties,
                                     message_bytes);
 
     if (amqp_get_rpc_reply(caph->capdata_conn).reply_type != AMQP_RESPONSE_NORMAL){
