@@ -65,20 +65,34 @@ You currently need root privileges for managing the network devices. You can use
 
 ### Docker
 
-To be continued.
+You can use the provided Dockerfile to build `kiscap2amqp` yourself.
+
+```
+git clone https://github.com/techge/kiscap2amqp.git
+cd kiscap2amqp
+docker build -t kiscap2amqp .
+```
+
+To use the container you need to give privileged rights as it will need to use your WiFi card. You can do so by using this command:
+
+```
+docker run -ti --net=host --privileged kiscap2amqp --source wlp2s0 --rabbitmq localhost:5672 --cap-exchange capture-raw
+```
+
+whereas `wlp2s0` defines your WiFi device, `localhost:5672` the host/port and `capture-raw` the exchange of the RabbitMQ server that shall be used.
 
 ### Packages
 
-To be continued
+To be continued (=none so far, you need to build yourself or use the `Dockerfile`).
 
 ## TODO
 
-* enable use of config file
-* logging to RabbitMQ
-* accepting commands via RabbitMQ
 * allow setting channel by parameter
 * allow dropping of packet types
 * enable cutting data part of data frames
+* enable use of config file
+* logging to RabbitMQ
+* accepting commands via RabbitMQ
 * building instructions for OpenWRT
 * adding more capture types (e.g. bluetooth)
 
